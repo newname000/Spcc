@@ -1,0 +1,66 @@
+def pass1(assembly_code):
+    symbol_table = {}
+    intermediate_code = []
+    address = 0
+
+    for line in assembly_code:
+        tokens = line.split()
+        if not tokens:
+            continue
+
+        if tokens[0][-1] == ':':  # Label definition
+            label = tokens[0][:-1]
+            symbol_table[label] = address
+            tokens = tokens[1:]  # Remove the label from tokens
+
+        if tokens:  # Instruction exists
+            intermediate_code.append((address, ' '.join(tokens)))
+            address += 1
+
+    return symbol_table, intermediate_code
+
+
+def pass2(symbol_table, intermediate_code):
+    machine_code = []
+
+    for address, instruction in intermediate_code:
+        tokens = instruction.split()
+        machine_instr = []
+
+        for token in tokens:
+            if token in symbol_table:  # Replace label with address
+                machine_instr.append(str(symbol_table[token]))
+            else:
+                machine_instr.append(token)
+
+        machine_code.append((address, ' '.join(machine_instr)))
+
+    return machine_code
+
+
+# Example Assembly Code
+assembly_code = [
+    "START: MOV A, B",
+    "ADD A, C",
+    "LABEL_D: MOV A, D",
+    "HALT"
+]
+
+# Pass 1: Generate Symbol Table and Intermediate Code
+symbol_table, intermediate_code = pass1(assembly_code)
+
+# Pass 2: Generate Machine Code
+machine_code = pass2(symbol_table, intermediate_code)
+
+# Output the results
+print("Symbol Table:")
+for label, address in symbol_table.items():
+    print(f"{label}: {address}")
+
+print("\nIntermediate Code:")
+for address, instruction in intermediate_code:
+    print(f"Address {address}: {instruction}")
+
+print("\nMachine Code:")
+for address, code in machine_code:
+    print(f"Address {address}: {code}")

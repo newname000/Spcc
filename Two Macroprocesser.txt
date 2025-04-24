@@ -1,0 +1,118 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
+
+#define MAX_MACROS 100
+#define MAX_LINE_LEN 256
+#define MAX_MACRO_NAME_LEN 50
+#define MAX_OUTPUT_LEN 1024  // Limit for the output buffer
+
+// Define structure for a macro
+typedef struct {
+    char name[MAX_MACRO_NAME_LEN];
+    char macro[MAX_LINE_LEN];
+} Macro;
+
+// Declare a global macro table
+Macro macroTable[MAX_MACROS];
+int macroCount = 0;
+
+// Function to check if a line is a macro definition
+int isMacroDefinition(char *line) {
+    return (strncmp(line, "#define", 7) == 0);
+}
+
+// Function to check if a line is a macro invocation
+int isMacroInvocation(char *line) {
+    for (int i = 0; i < macroCount; i++) {
+        if (strncmp(line, macroTable[i].name, strlen(macroTable[i].name)) == 0) {
+            return i;  // Return the index of the macro
+        }
+    }
+    return -1;
+}
+
+// First pass: Read and store macro definitions
+void firstPass(FILE *sourceFile) {
+    char line[MAX_LINE_LEN];
+    while (fgets(line, sizeof(line), sourceFile)) {
+        if (isMacroDefinition(line)) {
+            char macroName[MAX_MACRO_NAME_LEN];
+            char macroBody[MAX_LINE_LEN] = "";
+
+            // Extract macro name
+            sscanf(line, "#define %s", macroName);
+
+            // Read macro body until a blank line or EOF is encountered
+            while (fgets(line, sizeof(line), sourceFile) && line[0] != '\n') {
+                strncat(macroBody, line, sizeof(macroBody) - strlen(macroBody) - 1);
+            }
+
+            // Store the macro name and body in the macro table
+            strncpy(macroTable[macroCount].name, macroName, MAX_MACRO_NAME_LEN - 1);
+            strncpy(macroTable[macroCount].macro, macroBody, MAX_LINE_LEN - 1);
+            macroCount++;
+        }
+    }
+}
+
+// Second pass: Replace macros in the code with their corresponding definitions
+void secondPass(FILE *sourceFile, char *output) {
+    char line[MAX_LINE_LEN];
+    while (fgets(line, sizeof(line), sourceFile)) {
+        int index = isMacroInvocation(line);
+        if (index != -1) {
+            strncat(output, macroTable[index].macro, MAX_OUTPUT_LEN - strlen(output) - 1);  // Substitute macro
+        } else {
+            strncat(output, line, MAX_OUTPUT_LEN - strlen(output) - 1);  // Append line as is
+        }
+    }
+}
+
+// Function to process the source file and return the output as a string
+char* processMacro(const char *sourceFileName) {
+    FILE *sourceFile = fopen(sourceFileName, "r");
+    if (!sourceFile) {
+        fprintf(stderr, "Error opening source file '%s': No such file or directory\n", sourceFileName);
+        return NULL;
+    }
+
+    // Temporary buffer to store the final output
+    static char output[MAX_OUTPUT_LEN] = "";
+    output[0] = '\0';  // Clear any previous content in the output buffer
+
+    // First pass to read macro definitions
+    firstPass(sourceFile);
+
+    // Rewind file pointer for second pass
+    rewind(sourceFile);
+
+    // Second pass to replace macros and build output
+    secondPass(sourceFile, output);
+
+    fclose(sourceFile);
+    return output;
+}
+
+int main() {
+    char sourceFileName[MAX_LINE_LEN];
+
+    // Get the source file name from the user
+    printf("Enter the source file name (e.g., source.asm): ");
+    if (!fgets(sourceFileName, sizeof(sourceFileName), stdin)) {
+        fprintf(stderr, "Error reading input.\n");
+        return 1;
+    }
+
+    // Remove trailing newline character from file name
+    sourceFileName[strcspn(sourceFileName, "\n")] = '\0';
+
+    // Process the file
+    char *result = processMacro(sourceFileName);
+    if (result) {
+        printf("Processed Output:\n%s\n", result);
+    }
+
+    return 0;
+}

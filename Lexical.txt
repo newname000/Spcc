@@ -1,0 +1,64 @@
+#include <stdio.h>
+#include <string.h>
+#include <ctype.h>
+#define MAX_LENGTH 100
+
+// Function to analyze and print tokens
+void lexical_analysis(const char *str) {
+    char token[MAX_LENGTH];
+    int i = 0, j = 0;
+
+    while (str[i] != '\0') {
+        if (isspace(str[i])) {
+            // Skip spaces between tokens
+            if (j > 0) {
+                token[j] = '\0';
+                if (isdigit(token[0])) {
+                    printf("Token: '%s' - Type: Number\n", token);
+                } else {
+                    printf("Token: '%s' - Type: Word\n", token);
+                }
+                j = 0;
+            }
+        } else if (ispunct(str[i])) {
+            // Handle special characters and operators
+            if (j > 0) {
+                token[j] = '\0';
+                if (isdigit(token[0])) {
+                    printf("Token: '%s' - Type: Number\n", token);
+                } else {
+                    printf("Token: '%s' - Type: Word\n", token);
+                }
+                j = 0;
+            }
+            // Handle different types of punctuation
+            if (str[i] == '+' || str[i] == '-' || str[i] == '*' || str[i] == '/' || str[i] == '%') {
+                printf("Token: '%c' - Type: Arithmetic Operator\n", str[i]);
+            } else if (str[i] == '=' || str[i] == '>' || str[i] == '<') {
+                printf("Token: '%c' - Type: Assignment/Comparison Operator\n", str[i]);
+            } else {
+                printf("Token: '%c' - Type: Special Character\n", str[i]);
+            }
+        } else {
+            // Collect characters for a token (letters and digits)
+            token[j++] = str[i];
+        }
+        i++;
+    }
+    // Print the last token if there's any
+    if (j > 0) {
+        token[j] = '\0';
+        if (isdigit(token[0])) {
+            printf("Token: '%s' - Type: Number\n", token);
+        } else {
+            printf("Token: '%s' - Type: Word\n", token);
+        }
+    }
+}
+
+int main() {
+    const char *sentence = "I am a student of t3 + 2, and I love coding! @2025 = x";
+    printf("Lexical analysis of the sentence:\n");
+    lexical_analysis(sentence);
+    return 0;
+}

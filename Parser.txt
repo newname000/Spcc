@@ -1,0 +1,140 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <ctype.h>
+#include <string.h>
+
+typedef enum {
+    TOKEN_NUMBER, TOKEN_PLUS, TOKEN_MINUS, TOKEN_STAR,
+    TOKEN_SLASH, TOKEN_LPAREN, TOKEN_RPAREN, TOKEN_EOF, TOKEN_INVALID
+} TokenType;
+
+typedef struct {
+    TokenType type;
+    double value;  // Only used for numbers
+} Token;
+
+const char *input;
+Token current_token;
+
+// Function declarations
+void advance();
+double expression();
+double term();
+double factor();
+
+void advance() {
+    while (*input == ' ' || *input == '\t' || *input == '\n') {
+        input++; // Skip whitespace
+    }
+
+    if (*input == '\0') {
+        current_token.type = TOKEN_EOF;
+        return;
+    }
+
+    if (isdigit(*input) || *input == '.') {
+        char *end;
+        current_token.type = TOKEN_NUMBER;
+        current_token.value = strtod(input, &end);  // Parse the number
+        input = end; // Move input pointer
+        return;
+    }
+
+    switch (*input) {
+        case '+': current_token.type = TOKEN_PLUS; input++; break;
+        case '-': current_token.type = TOKEN_MINUS; input++; break;
+        case '*': current_token.type = TOKEN_STAR; input++; break;
+        case '/': current_token.type = TOKEN_SLASH; input++; break;
+        case '(': current_token.type = TOKEN_LPAREN; input++; break;
+        case ')': current_token.type = TOKEN_RPAREN; input++; break;
+        default: current_token.type = TOKEN_INVALID; break;
+    }
+}
+
+double factor() {
+    if (current_token.type == TOKEN_NUMBER) {
+        double value = current_token.value;
+        advance();
+        return value;
+    } else if (current_token.type == TOKEN_LPAREN) {
+        advance();  // Consume '('
+        double value = expression();
+        if (current_token.type != TOKEN_RPAREN) {
+            printf("Syntax error: expected ')'\n");
+            exit(1);
+        }
+        advance();  // Consume ')'
+        return value;
+    } else {
+        printf("Syntax error: expected number or '('\n");
+        exit(1);
+    }
+}
+
+double term() {
+    double value = factor();
+    while (current_token.type == TOKEN_STAR || current_token.type == TOKEN_SLASH) {
+        TokenType op = current_token.type;
+        advance();
+        if (op == TOKEN_STAR) {
+            value *= factor();
+        } else if (op == TOKEN_SLASH) {
+            double divisor = factor();
+            if (divisor == 0) {
+                printf("Math error: division by zero\n");
+                exit(1);
+            }
+            value /= divisor;
+        }
+    }
+    return value;
+}
+
+double expression() {
+    double value = term();
+    while (current_token.type == TOKEN_PLUS || current_token.type == TOKEN_MINUS) {
+        TokenType op = current_token.type;
+        advance();
+        if (op == TOKEN_PLUS) {
+            value += term();
+        } else if (op == TOKEN_MINUS) {
+            value -= term();
+        }
+    }
+    return value;
+}
+
+double parse(const char *expr) {
+    input = expr;
+    advance(); // Get the first token
+    double result = expression();
+    if (current_token.type != TOKEN_EOF) {
+        printf("Syntax error: unexpected input after expression\n");
+        exit(1);
+    }
+    return result;
+}
+
+int main() {
+    char expr[256];
+
+    printf("Enter an arithmetic expression: ");
+    if (!fgets(expr, sizeof(expr), stdin)) {
+        printf("Error: could not read input\n");
+        return 1;
+    }
+
+    // Remove trailing newline
+    expr[strcspn(expr, "\n")] = '\0';
+
+    if (strlen(expr) == 0) {
+        printf("Error: empty input\n");
+        return 1;
+    }
+
+    // Parse and evaluate the expression
+    double result = parse(expr);
+    printf("Result: %f\n", result);
+
+    return 0;
+}

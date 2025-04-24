@@ -1,0 +1,66 @@
+class ASTNode:
+    def __init__(self, value=None, left=None, right=None, operator=None):
+        self.value = value          # Value of the node (could be a constant, variable, etc.)
+        self.left = left            # Left child (for binary operators)
+        self.right = right          # Right child (for binary operators)
+        self.operator = operator    # Operator ('+', '-', '*', '/', etc.)
+
+class CodeGenerator:
+    def __init__(self):
+        self.temp_counter = 0    # Counter for generating temporary variable names
+        self.code = []           # List to hold the generated code
+
+    def generate_code(self, ast):
+        if ast is None:
+            return ""
+
+        # If it's a leaf node (e.g., a number or variable), return its value
+        if ast.operator is None:
+            return str(ast.value)
+
+        # Otherwise, it's a binary operation
+        left_code = self.generate_code(ast.left)
+        right_code = self.generate_code(ast.right)
+
+        # Create a temporary variable to hold the result of the operation
+        temp_var = f"t{self.temp_counter}"
+        self.temp_counter += 1
+
+        # Generate assembly-like code for the operation
+        if ast.operator == "+":
+            self.code.append(f"ADD {temp_var}, {left_code}, {right_code}")
+        elif ast.operator == "-":
+            self.code.append(f"SUB {temp_var}, {left_code}, {right_code}")
+        elif ast.operator == "*":
+            self.code.append(f"MUL {temp_var}, {left_code}, {right_code}")
+        elif ast.operator == "/":
+            self.code.append(f"DIV {temp_var}, {left_code}, {right_code}")
+
+        # Return the temporary variable for this operation
+        return temp_var
+
+    def get_code(self):
+        return "\n".join(self.code)
+
+# Example: Generating assembly code for the expression: (3+5)* (2+4)
+if __name__ == "__main__":
+    # Construct the AST for the expression (3+5)*(2+4)
+    node1 = ASTNode(value=3)
+    node2 = ASTNode(value=5)
+    add_node = ASTNode(operator='+', left=node1, right=node2)
+
+    node3 = ASTNode(value=2)
+    node4 = ASTNode(value=4)
+    add_node2 = ASTNode(operator='+', left=node3, right=node4)
+
+    multiply_node = ASTNode(operator='*', left=add_node, right=add_node2)
+
+    # Create the code generator
+    code_gen = CodeGenerator()
+
+    # Generate code from the AST
+    code_gen.generate_code(multiply_node)
+
+    # Output the generated code
+    print("Generated Code:")
+    print(code_gen.get_code())

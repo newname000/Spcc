@@ -1,0 +1,80 @@
+#include <stdio.h>
+#include <string.h>
+
+struct operation {
+    char left;            // Left operand
+    char right[20];       // Right operand
+};
+
+struct operation op[10], pr[10];  // op[] holds intermediate operations, pr[] holds optimized operations
+int n, z = 0;                     // n is the number of operations, z is the index for pr[]
+
+// Function to check for common subexpressions
+int find_common_subexpression(int i, int j) {
+    if (strcmp(op[i].right, op[j].right) == 0) {
+        return 1; // Common subexpression found
+    }
+    return 0;
+}
+
+// Main function
+int main() {
+    printf("Enter the Number of Operations: ");
+    scanf("%d", &n);
+    getchar();  // To consume the newline character left by scanf
+
+    // Read the operations
+    for (int i = 0; i < n; i++) {
+        printf("Enter left operand for operation %d: ", i + 1);
+        scanf("%c", &op[i].left); // Read left operand (a single character)
+        getchar();  // To consume the newline character left by scanf
+        printf("Enter right operand for operation %d: ", i + 1);
+        scanf("%s", op[i].right); // Read right operand (string)
+        getchar();  // To consume the newline character left by scanf
+    }
+
+    // Generate intermediate code
+    printf("\nIntermediate Code:\n");
+    for (int i = 0; i < n; i++) {
+        printf("%c = %s\n", op[i].left, op[i].right);
+    }
+
+    // Dead Code Elimination
+    printf("\nAfter Dead Code Elimination:\n");
+    for (int i = 0; i < n; i++) {
+        int is_dead = 1;
+        for (int j = 0; j < n; j++) {
+            if (strchr(op[j].right, op[i].left)) {
+                is_dead = 0;
+                break;
+            }
+        }
+        if (!is_dead) {
+            pr[z++] = op[i]; // Keep the operation if it is not dead
+        }
+    }
+
+    // Display after dead code elimination
+    for (int i = 0; i < z; i++) {
+        printf("%c = %s\n", pr[i].left, pr[i].right);
+    }
+
+    // Common Subexpression Elimination
+    printf("\nAfter Common Subexpression Elimination:\n");
+    for (int i = 0; i < z; i++) {
+        for (int j = i + 1; j < z; j++) {
+            if (find_common_subexpression(i, j)) {
+                // If common subexpression found, eliminate it
+                pr[j].left = pr[i].left;
+                strcpy(pr[j].right, pr[i].right);
+            }
+        }
+    }
+
+    // Display optimized code after common subexpression elimination
+    for (int i = 0; i < z; i++) {
+        printf("%c = %s\n", pr[i].left, pr[i].right);
+    }
+
+    return 0;
+}

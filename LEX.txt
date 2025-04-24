@@ -1,0 +1,40 @@
+import re
+
+# Define token patterns
+token_specification = [
+    ('NUMBER', r'\d+'),  # Integer
+    ('PLUS', r'\+'),     # Addition
+    ('MINUS', r'-'),     # Subtraction
+    ('TIMES', r'\*'),    # Multiplication
+    ('DIVIDE', r'/'),    # Division
+    ('LPAREN', r'\('),   # Left Parenthesis
+    ('RPAREN', r'\)'),   # Right Parenthesis
+    ('SKIP', r'[ \t]+'), # Skip spaces and tabs
+    ('MISMATCH', r'.'),  # Any other character (error)
+]
+
+# Create a regex pattern for the tokens
+tok_regex = '|'.join(f'(?P<{pair[0]}>{pair[1]})' for pair in token_specification)
+
+def lexer(code):
+    for mo in re.finditer(tok_regex, code):
+        kind = mo.lastgroup
+        value = mo.group()
+        
+        if kind == 'NUMBER':
+            value = int(value)  # Convert to integer for numbers
+        elif kind == 'SKIP':
+            continue  # Ignore spaces and tabs
+        elif kind == 'MISMATCH':
+            raise RuntimeError(f'Unexpected character: {value}')
+        
+        yield kind, value
+
+# Test the lexer
+code = "3 + 4 * (5 - 2)"
+
+tokens = list(lexer(code))
+
+# Display tokens
+for token in tokens:
+    print(token)

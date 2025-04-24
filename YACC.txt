@@ -1,0 +1,104 @@
+import re
+
+# Define token patterns for the lexer
+token_specification = [
+    ('NUMBER', r'\d+'),         # Integer
+    ('PLUS', r'\+'),            # Addition
+    ('MINUS', r'-'),            # Subtraction
+    ('TIMES', r'\*'),           # Multiplication
+    ('DIVIDE', r'/'),           # Division
+    ('LPAREN', r'\('),          # Left Parenthesis
+    ('RPAREN', r'\)'),          # Right Parenthesis
+    ('SKIP', r'[ \t]+'),        # Skip spaces and tabs
+    ('MISMATCH', r'.'),         # Any other character (error)
+]
+
+# Create a regex pattern for the tokens
+tok_regex = '|'.join(f'(?P<{pair[0]}>{pair[1]})' for pair in token_specification)
+
+# Lexer function
+def lexer(code):
+    for mo in re.finditer(tok_regex, code):
+        kind = mo.lastgroup
+        value = mo.group()
+
+        if kind == 'NUMBER':
+            value = int(value)  # Convert to integer for numbers
+        elif kind == 'SKIP':
+            continue  # Ignore spaces and tabs
+        elif kind == 'MISMATCH':
+            raise RuntimeError(f'Unexpected character: {value}')
+        
+        yield kind, value
+
+# Parser class to handle parsing and evaluating expressions
+class Parser:
+    def __init__(self, tokens):
+        self.tokens = tokens
+        self.pos = 0
+
+    def parse(self):
+        result = self.expression()
+        if self.pos < len(self.tokens):
+            raise SyntaxError("Unexpected input after parsing")
+        return result
+
+    def current_token(self):
+        return self.tokens[self.pos] if self.pos < len(self.tokens) else None
+
+    def eat(self, token_type):
+        if self.current_token() and self.current_token()[0] == token_type:
+            self.pos += 1
+        else:
+            raise SyntaxError(f'Expected {token_type} but got {self.current_token()[0]}')
+
+    def expression(self):
+        result = self.term()
+        while self.current_token() and self.current_token()[0] in ['PLUS', 'MINUS']:
+            if self.current_token()[0] == 'PLUS':
+                self.eat('PLUS')
+                result += self.term()
+            elif self.current_token()[0] == 'MINUS':
+                self.eat('MINUS')
+                result -= self.term()
+        return result
+
+    def term(self):
+        result = self.factor()
+        while self.current_token() and self.current_token()[0] in ['TIMES', 'DIVIDE']:
+            if self.current_token()[0] == 'TIMES':
+                self.eat('TIMES')
+                result *= self.factor()
+            elif self.current_token()[0] == 'DIVIDE':
+                self.eat('DIVIDE')
+                result /= self.factor()
+        return result
+
+    def factor(self):
+        token = self.current_token()
+        if token[0] == 'NUMBER':
+            self.eat('NUMBER')
+            return token[1]
+        elif token[0] == 'LPAREN':
+            self.eat('LPAREN')
+            result = self.expression()
+            self.eat('RPAREN')
+            return result
+        elif token[0] == 'MINUS':
+            self.eat('MINUS')
+            return -self.factor()
+        else:
+            raise SyntaxError(f"Unexpected token {token}")
+
+# Input string for testing
+code = "34 + (5 - 2)"
+
+# Tokenize the input code
+tokens = list(lexer(code))
+
+# Instantiate the parser and parse the tokens
+parser = Parser(tokens)
+result = parser.parse()
+
+# Display the result
+print("Result:", result)
